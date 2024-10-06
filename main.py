@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from sqlalchemy import MetaData, Table, Column, Integer, String, Float,DateTime
 from databases import Database
+from pydantic import BaseModel
 
 # Conexión a la base de datos MySQL
 DATABASE_URL = "mysql+asyncmy://remoto:password@127.0.0.1/demo"
@@ -8,7 +9,14 @@ DATABASE_URL = "mysql+asyncmy://remoto:password@127.0.0.1/demo"
 database = Database(DATABASE_URL)
 metadata = MetaData()
 
-# Ejemplo de tabla
+usuarios = Table(
+    "Users",
+    metadata,
+    Column("Id", Integer, primary_key=True),
+    Column("User", String(50)),
+    Column("Password", String(50))
+)
+
 mezclas = Table(
     "Mezclas",
     metadata,
@@ -18,6 +26,28 @@ mezclas = Table(
     Column("FechaInicio", DateTime), 
     Column("FechaTermino", DateTime), 
 )
+
+ordenes = Table(
+    "Ordenes",
+    metadata,
+    Column("IdoP", String(50)),
+    Column("FolioOp", String(20)),
+    Column("Mezclas", Integer),
+    Column("MezclasRealizadas", Integer), 
+    Column("Formula", String(50)), 
+)
+
+eficiencia = Table(
+    "Eficiencia",
+    metadata,
+    Column("Fecha", DateTime),
+    Column("Eficiencia", Float),
+)
+
+
+class UserAuth(BaseModel):
+    User: str
+    Password: str
 
 app = FastAPI()
 
@@ -32,22 +62,53 @@ async def shutdown():
     await database.disconnect()
 
 
-@app.get("/mezclas")
-async def read_mezclas():
-    query = mezclas.select()
-    mezclas_result = await database.fetch_all(query) 
-    if mezclas_result is None:
+@app.post("/login")
+async def login(user: UserAuth):
+    query = usuarios.select().where(usuarios.c.User == user.User).where(usuarios.c.Password == user.Password)
+    user_record = await database.fetch_one(query)
+    
+    if user_record is None:
+        return {"validate": False , "message": "Invalid username or password"}
+    
+    return {"validate": True, "message": "Login successful"}
+
+@app.get("/Ordenes")
+async def read_ordenes():
+    query = ordenes.select()
+    ordenes_result = await database.fetch_all(query) 
+    if ordenes_result is None:
+        return {"error": "ordenes not found"}
+    result = [dict(orden) for orden in ordenes_result]
+    return {"Ordenes": result}
+
+@app.get("/Mezclas/{idop}")
+async def read_mezclas(idop):
+    query = mezclas.select().where(mezclas.c.IdoP == idop)
+    print(str(query))
+    mezclas_result = await database.fetch_all(query)
+    
+    if not mezclas_result:  # Verificación de lista vacía
         return {"error": "mezclas not found"}
+    
     result = [dict(mezcla) for mezcla in mezclas_result]
     return {"Mezclas": result}
 
 
-@app.get("/mezclas/{mezcla}")
-async def read_mezcla(mezcla: int):
-    query = mezclas.select().where(mezclas.c.Mezcla == mezcla)
-    mezcla_result = await database.fetch_one(query)
-    if mezcla_result is None:
-        return {"error": "mezcla not found"}
-    return {"Mezcla": dict(mezcla_result)}
+@app.get("/Mezclas/{idop}/{mezcla}")
+async def read_mezcla(idop,mezcla: int):
+     query = mezclas.select().where(mezclas.c.Mezcla == mezcla and mezclas.c.IdOp == idop)
+     mezcla_result = await database.fetch_one(query)
+     if mezcla_result is None:
+         return {"error": "mezcla not found"}
+     return {"Mezcla": dict(mezcla_result)}
 
 
+
+@app.get("/Eficiencia")
+async def read_eficiencia():
+    query = eficiencia.select().limit(50)
+    efi_result = await database.fetch_all(query) 
+    if efi_result is None:
+        return {"error": "eficiencia not found"}
+    result = [dict(efi) for efi in efi_result]
+    return {"Eficiencia": result}
