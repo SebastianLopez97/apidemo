@@ -27,6 +27,16 @@ mezclas = Table(
     Column("FechaTermino", DateTime), 
 )
 
+consumos = Table(
+    "Consumos",
+    metadata,
+    Column("IdOp", String(50)),
+    Column("Mezcla", Integer),
+    Column("Codigo", String(50)),
+    Column("MateriaPrima", String(100)), 
+    Column("Deseado", Float),
+    Column("Dosificado", Float), 
+)
 ordenes = Table(
     "Ordenes",
     metadata,
@@ -87,7 +97,7 @@ async def read_mezclas(idop):
     print(str(query))
     mezclas_result = await database.fetch_all(query)
     
-    if not mezclas_result:  # Verificación de lista vacía
+    if not mezclas_result:  
         return {"error": "mezclas not found"}
     
     result = [dict(mezcla) for mezcla in mezclas_result]
@@ -95,12 +105,16 @@ async def read_mezclas(idop):
 
 
 @app.get("/Mezclas/{idop}/{mezcla}")
-async def read_mezcla(idop,mezcla: int):
-     query = mezclas.select().where(mezclas.c.Mezcla == mezcla and mezclas.c.IdOp == idop)
-     mezcla_result = await database.fetch_one(query)
-     if mezcla_result is None:
-         return {"error": "mezcla not found"}
-     return {"Mezcla": dict(mezcla_result)}
+async def read_consumos(idop,mezcla: int):
+    query = consumos.select().where((consumos.c.IdOp == idop) & (consumos.c.Mezcla == mezcla) )
+    print(query)
+    consumos_r = await database.fetch_all(query)
+
+    if not consumos_r:
+        return {"error": "Consumos not found"}
+
+    result = [dict(consumo) for consumo in consumos_r]
+    return {"Consumos": result}
 
 
 
