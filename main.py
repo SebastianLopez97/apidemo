@@ -25,6 +25,7 @@ mezclas = Table(
     Column("Mezcla", String(50)),
     Column("FechaInicio", DateTime), 
     Column("FechaTermino", DateTime), 
+    Column("TotalKg", Float),
 )
 
 consumos = Table(
@@ -45,6 +46,7 @@ ordenes = Table(
     Column("Mezclas", Integer),
     Column("MezclasRealizadas", Integer), 
     Column("Formula", String(50)), 
+    Column("TotalKg", Float),
 )
 
 eficiencia = Table(
