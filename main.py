@@ -122,7 +122,7 @@ async def read_consumos(idop,mezcla: int):
 
 @app.get("/Eficiencia")
 async def read_eficiencia():
-    query = eficiencia.select().limit(50)
+    query = eficiencia.select().order_by(eficiencia.c.Fecha).limit(20)
     efi_result = await database.fetch_all(query) 
     if efi_result is None:
         return {"error": "eficiencia not found"}
